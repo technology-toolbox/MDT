@@ -1,7 +1,7 @@
 <job id="ZTIConfigureADDS">
 <script language="VBScript" src="ZTIUtility.vbs" />
 <script language="VBScript">
-' // ***************************************************************************
+' // *****************************************************************************************************************
 ' // 
 ' // Copyright (c) Microsoft Corporation.  All rights reserved.
 ' // 
@@ -9,13 +9,15 @@
 ' //
 ' // File:      ZTIConfigureADDS.wsf
 ' // 
-' // Version:   6.3.8330.1000
+' // Version:   6.3.8443.1000
 ' // 
 ' // Purpose:   Run DCPromo to create a new domain controller
 ' // 
 ' // Usage:     cscript ZTIConfigureADDS.wsf [/debug:true]
 ' // 
-' // ***************************************************************************
+' //  NOTE: We will continue to use dcpromo.exe on Server2012 and later versions of Windows Server 
+'//                 however the support for dcromo.exe is terminated from Server 2012 and later versions of Windows Server
+' // *****************************************************************************************************************
 
 
 

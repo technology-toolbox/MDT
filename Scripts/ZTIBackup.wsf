@@ -12,7 +12,7 @@
 ' //
 ' // File:      ZTIBackup.wsf
 ' // 
-' // Version:   6.3.8330.1000
+' // Version:   6.3.8443.1000
 ' // 
 ' // Purpose:   Backup a computer using DISM
 ' // 
@@ -80,7 +80,6 @@ Class ZTIBackup
 		Dim sPrefix
 		Dim oExec
 		Dim sWimScriptPath
-
 
 
 		iRetVal = Success
@@ -430,14 +429,11 @@ Class ZTIBackup
 
 					' Build the command
 
+					oUtility.VerifyPathExists oUtility.LocalRootPath & "\Scratch"
 					If oFSO.FileExists(sBackupPath) then
-						
-						sCmd = " /Append-Image /CaptureDir:" & oDrive.Path & " /ImageFile:""" & sBackupPath & """ /Name:""" & sPrefix & Left(oDrive.Path, 1) & "Drive"" /ConfigFile:""" & sWimScriptPath & """"
-
+						sCmd = " /Append-Image /CaptureDir:" & oDrive.Path & " /ImageFile:""" & sBackupPath & """ /Name:""" & sPrefix & Left(oDrive.Path, 1) & "Drive"" /ConfigFile:""" & sWimScriptPath & """ /ScratchDir:""" & oUtility.LocalRootPath & "\Scratch"""
 					Else
-						
-						sCmd = " /Capture-Image /CaptureDir:" & oDrive.Path & "  /ImageFile:""" & sBackupPath & """  /Name:""" & sPrefix & Left(oDrive.Path, 1) & "Drive"" /Compress:MAX /ConfigFile:""" & sWimScriptPath & """"
-
+						sCmd = " /Capture-Image /CaptureDir:" & oDrive.Path & "  /ImageFile:""" & sBackupPath & """  /Name:""" & sPrefix & Left(oDrive.Path, 1) & "Drive"" /Compress:MAX /ConfigFile:""" & sWimScriptPath & """ /ScratchDir:""" & oUtility.LocalRootPath & "\Scratch"""
 					End if
 
 

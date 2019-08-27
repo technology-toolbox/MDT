@@ -9,7 +9,7 @@
 ' //
 ' // File:      ZTIWindowsUpdate.wsf
 ' // 
-' // Version:   6.3.8330.1000
+' // Version:   6.3.8443.1000
 ' // 
 ' // Purpose:   Installs all needed updates (drivers, patches, service packs, 
 ' //            etc.) from the Windows Update/Microsoft Update site or WSUS 
@@ -155,6 +155,7 @@ Class ZTIWindowsUpdate
 		If ServiceManager is nothing then
 			oLogging.CreateEntry "Failed to Create Object: Microsoft.Update.ServiceManager" , LogTypeWarning
 		Else
+			ServiceManager.ClientApplicationID = "ZTIWindowsUpdate " & Version
 			bFoundMU = False
 			For each Item in ServiceManager.Services
 				WScript.Echo "Registered Update Service: " & Item.ServiceID & "   " & Item.Name
@@ -167,7 +168,6 @@ Class ZTIWindowsUpdate
 			If not bFoundMU then
 				On Error Resume Next
 					Err.clear
-					ServiceManager.ClientApplicationID = "My App"
 					If Err.Number <> 0 then
 						oLogging.CreateEntry "There was an error getting Windows Update to opt into Microsoft Update. Please verify you are running the latest version of Windows Update Agent." , LogTypeWarning
 					End if
@@ -256,6 +256,7 @@ Class ZTIWindowsUpdate
 		If updatesToDownload is nothing then
 			oLogging.ReportFailure "Failed to Create Object: Microsoft.Update.UpdateColl.", 9905
 		End if
+		updateSession.ClientApplicationID = "ZTIWindowsUpdate " & Version
 
 		oLogging.CreateEntry "Start Search..." , LogTypeInfo
 		On Error Resume Next

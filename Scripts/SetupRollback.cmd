@@ -1,4 +1,19 @@
 @echo off
+:: // ***************************************************************************
+:: //
+:: // Copyright (c) Microsoft Corporation.  All rights reserved.
+:: //
+:: // Microsoft Deployment Toolkit Solution Accelerator
+:: //
+:: // File:      SetupRollback.cmd
+:: //
+:: // Version:   6.3.8443.1000
+:: //
+:: // Purpose:   Called after a failed in-place upgrade.  This batch file
+:: //            records the failure in the registry and then cleans
+:: //            itself from the registry.
+:: //
+:: // ***************************************************************************
 
 for %%d in (c d e f g h i j k l m n o p q r s t u v w x y z) do if exist %%d:\MININT\Scripts\LTIBootstrap.vbs (
 echo %DATE%-%TIME% TSMBootstrap did not request reboot, resetting registry >> %%d:\MININT\SMSOSD\OSDLOGS\SetupRollback.log 
