@@ -12,9 +12,9 @@
 ' //
 ' // File:      ZTIBackup.wsf
 ' // 
-' // Version:   6.2.5019.0
+' // Version:   6.3.8298.1000
 ' // 
-' // Purpose:   Backup a computer using IMAGEX
+' // Purpose:   Backup a computer using DISM
 ' // 
 ' // Usage:     cscript ZTIBackup.wsf [/debug:true]
 ' // 
@@ -79,6 +79,7 @@ Class ZTIBackup
 		Dim Drive, Partition
 		Dim sPrefix
 		Dim oExec
+		Dim sWimScriptPath
 
 
 
@@ -424,33 +425,27 @@ Class ZTIBackup
 						
 				ElseIf oFSO.FolderExists(oDrive.Path) then   ' Skip unformatted disks
 
+					sWimScriptPath = oEnvironment.Item("DeployRoot") & "\Tools\" & oEnvironment.Item("Architecture") & "\wimscript.ini"
+
+
 					' Build the command
 
 					If oFSO.FileExists(sBackupPath) then
 						
-						sCmd = " /append " & oDrive.Path & " """ & sBackupPath & """ """ & sPrefix & Left(oDrive.Path, 1) & "Drive"""
-							
+						sCmd = " /Append-Image /CaptureDir:" & oDrive.Path & " /ImageFile:""" & sBackupPath & """ /Name:""" & sPrefix & Left(oDrive.Path, 1) & "Drive"" /ConfigFile:""" & sWimScriptPath & """"
+
 					Else
 						
-						sCmd = " /capture /compress maximum " & oDrive.Path & " """ & sBackupPath & """ """ & sPrefix & Left(oDrive.Path, 1) & "Drive"""
-							
-					End if
+						sCmd = " /Capture-Image /CaptureDir:" & oDrive.Path & "  /ImageFile:""" & sBackupPath & """  /Name:""" & sPrefix & Left(oDrive.Path, 1) & "Drive"" /Compress:MAX /ConfigFile:""" & sWimScriptPath & """"
 
-
-					' Add flags value if populated
-
-					If oEnvironment.Item("ImageFlags") <> "" then
-						
-						sCmd = sCmd & " /flags " & oEnvironment.Item("ImageFlags")
-							
 					End if
 
 
 					' Execute it
 
 					oLogging.CreateEvent 41035, LogTypeInfo, "Beginning backup of drive " & oDrive.Path, Array(oDrive.Path)
-
-					iRc = oUtility.FindExeAndRunWithLogging( "imagex.exe", sCmd )			
+			
+					iRc = oUtility.FindExeAndRunWithLogging( "dism.exe", sCmd )			
 					If iRc <> 0 then
 						
 						oLogging.CreateEvent 41036, LogTypeError, "Error creating an image of drive " & oDrive.Path & ", rc = " & iRc, Array(oDrive.Path, iRc)

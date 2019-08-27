@@ -9,7 +9,7 @@
 ' //
 ' // File:      ZTIWindowsUpdate.wsf
 ' // 
-' // Version:   6.2.5019.0
+' // Version:   6.3.8298.1000
 ' // 
 ' // Purpose:   Installs all needed updates (drivers, patches, service packs, 
 ' //            etc.) from the Windows Update/Microsoft Update site or WSUS 
@@ -28,6 +28,7 @@ RunNewInstance
 '//----------------------------------------------------------------------------
 
 Const MSIT_WU_REBOOT_MAX = 7
+Const MAX_UPDATES = 100
 
 
 '//----------------------------------------------------------------------------
@@ -68,7 +69,6 @@ Class ZTIWindowsUpdate
 		Dim ServiceManager
 		Dim bFoundMU
 		Dim NewUpdateService
-		Dim oInstalledUpdates
 		Dim strCabPath
 		Dim iResult
 		Dim oProgress
@@ -123,8 +123,6 @@ Class ZTIWindowsUpdate
 		If MSIT_WU_Count > MSIT_WU_REBOOT_MAX then
 			oLogging.ReportFailure "ZTIWindowsUpdate has run and failed too many times. Count = " & MSIT_WU_Count, 9902
 		End if
-
-		Set oInstalledUpdates = oEnvironment.ListItem("InstalledUpdates")
 
 
 		' Make sure the necessary agent is in place
@@ -345,9 +343,7 @@ Class ZTIWindowsUpdate
 				kb = kb & " - " & FormatLargeSize(iSize)
 			End if
 			
-			If oInstalledUpdates.Exists(item.Identity.UpdateID) Then
-				oLogging.CreateEntry "  FOUND - " & item.Identity.UpdateID & " - " & Item.Title & kb, LogTypeInfo
-			ElseIf bInstall = TRUE then
+			If bInstall = TRUE and updatesToDownload.count < MAX_UPDATES then
 				oLogging.CreateEntry "INSTALL - " & item.Identity.UpdateID & " - " & Item.Title & kb, LogTypeInfo
 				updatesToDownload.Add(Item)
 			Else
@@ -400,7 +396,7 @@ Class ZTIWindowsUpdate
 		For item = 0 to UpdatesToDownload.Count - 1
 			If not UpdatesToDownload.Item(item).IsDownloaded then
 				oLogging.CreateEntry "    Failed to download: " & UpdatesToDownload.Item(item).Identity.UpdateID & _
-					"  result(" & UpdateResult.GetUpdateResult(item).ResultCode & ") : " & UpdatesToDownload.Item(item).Title, MSIT_LogType
+					"  result(" & UpdateResult.GetProgress.GetUpdateResult(item).ResultCode & ") : " & UpdatesToDownload.Item(item).Title, MSIT_LogType
 			End if
 		Next
 
@@ -439,15 +435,6 @@ Class ZTIWindowsUpdate
 			WScript.Sleep 500
 		WEnd
 		On Error Goto 0
-
-		For item = 0 to UpdatesToDownload.Count - 1
-			If UpdatesToDownload.Item(item).IsInstalled then
-				oInstalledUpdates.Add UpdatesToDownload.Item(item).Identity.UpdateID,""
-			ElseIf UpdateResult.GetProgress.GetUpdateResult(item).ResultCode = 2 then
-				oInstalledUpdates.Add UpdatesToDownload.Item(item).Identity.UpdateID,""
-			End if
-		Next
-		Set oEnvironment.ListItem("InstalledUpdates") = oInstalledUpdates
 
 		bReboot = False
 		bFailure = False
@@ -542,15 +529,19 @@ Class ZTIWindowsUpdate
 		'//----------------------------------------------------------------------------
 
 		On error resume next
-		oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\Level", 3, "REG_DWORD"
+		
+		If UCase(oEnvironment.Item("Debug")) = "TRUE" then
+		
+			oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\Level", 3, "REG_DWORD"
 
-		oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\Handler\Flags", &h000000ff, "REG_DWORD"
-		oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\Handler\Level", 3, "REG_DWORD"
+			oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\Handler\Flags", &h000000ff, "REG_DWORD"
+			oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\Handler\Level", 3, "REG_DWORD"
 
-		oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\COMAPI\Flags", &h000000ff, "REG_DWORD"
-		oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\COMAPI\Level", 3, "REG_DWORD"
-		On error goto 0
+			oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\COMAPI\Flags", &h000000ff, "REG_DWORD"
+			oShell.RegWrite "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace\COMAPI\Level", 3, "REG_DWORD"
+			On error goto 0
 
+		End if
 
 		'//----------------------------------------------------------------------------
 		'//  Configure Windows Update settings

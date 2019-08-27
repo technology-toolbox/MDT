@@ -6,7 +6,7 @@
 ' //
 ' // File:      DeployWiz_Initialization.vbs
 ' // 
-' // Version:   6.2.5019.0
+' // Version:   6.3.8298.1000
 ' // 
 ' // Purpose:   Main Client Deployment Wizard Initialization routines
 ' // 
@@ -96,6 +96,7 @@ Function ValidateTSList
 	Dim sID
 	Dim bFound
 	Dim sTemplate
+	Dim oTaskOsUpgrade
 	
 	set oTS = new ConfigFile
 	oTS.sFileType = "TaskSequences"
@@ -120,7 +121,7 @@ Function ValidateTSList
 	TestAndLog sID <> "", "Verify Task Sequence ID: " & sID
 	Set oTaskList = oUtility.LoadConfigFileSafe( sID & "\TS.XML" )
 
-	If not FindTaskSequenceStep( "//step[@type='BDD_InstallOS']", "" ) then
+	If not FindTaskSequenceStep( "//step[@type='BDD_InstallOS']", "" ) and not FindTaskSequenceStep( "//step[@type='BDD_UpgradeOS']", "" ) then
 
 		oLogging.CreateEntry "Task Sequence does not contain an OS and does not contain a LTIApply.wsf step, possibly a Custom Step or a Client Replace.", LogTypeInfo
 		
@@ -144,17 +145,31 @@ Function ValidateTSList
 
 	Elseif oEnvironment.Item("OSVERSION")="WinPE" Then
 
-		oProperties("DeploymentType")="NEWCOMPUTER"
+		oProperties("DeploymentType")="NEWCOMPUTER"		
 
 	Else
 
 		oLogging.CreateEntry "Task Sequence contains a LTIApply.wsf step, and is not running within WinPE.", LogTypeInfo
-		oProperties("DeploymentType") = "REFRESH"
-		oEnvironment.Item("DeployTemplate")=Ucase(Left(sTemplate,Instr(sTemplate,".")-1))
+		Set oTaskOsUpgrade = oTaskList.SelectSingleNode("//globalVarList/variable[@name='IsOSUpgrade']")
+		If oTaskOsUpgrade is Nothing then		
+			oProperties("DeploymentType") = "REFRESH"
+		Else 
+			oProperties("DeploymentType") = "UPGRADE"
+		End if
+			oEnvironment.Item("DeployTemplate")=Ucase(Left(sTemplate,Instr(sTemplate,".")-1))
+			
 
 	End if
 
 	oLogging.CreateEntry "DeploymentType = " & oProperties("DeploymentType"), LogTypeInfo
+	oEnvironment.Item("DeploymentType") = oProperties("DeploymentType")
+	If oEnvironment.Item("DeploymentType") <> "" and oEnvironment.Item("DeploymentType") = "UPGRADE" then
+		oLogging.CreateEntry "Upgrade Task Sequence is selected, setting Environment var IsOSUpgrade = 1", LogTypeInfo
+		oEnvironment.Item("IsOSUpgrade") = "1"
+	Else
+		oLogging.CreateEntry "NON-OS Upgrade Task Sequence is selected, setting Environment var IsOSUpgrade = 0", LogTypeInfo
+		oEnvironment.Item("IsOSUpgrade") = "0"
+	End if
 
 	
 	set oTaskList = nothing
@@ -166,9 +181,18 @@ Function ValidateTSList
 	oEnvironment.Item("ImageProcessor") = ""
 	oEnvironment.Item("OSGUID")=""
 	oUtility.SetTaskSequenceProperties sID
+	
+	If ucase(oProperties("DeploymentType"))="NEWCOMPUTER" then
+		oUtility.GetMajorMinorVersion(oEnvironment.Item("ImageBuild"))		
+		If oUtility.VersionMajor >= 10 then
+			oProperties("OSDDiskPartitionStyle")="WIN10ADVANCED"
+		Else
+			oProperties("OSDDiskPartitionStyle")="PREWIN10"
+		End if
+	End if
 
-
-	If Left(Property("ImageBuild"), 1) < "6" then
+	oUtility.GetMajorMinorVersion(Property("ImageBuild"))
+	If oUtility.VersionMajor < 6 then
 		RMPropIfFound("LanguagePacks")
 		RMPropIfFound("UserLocaleAndLang")
 		RMPropIfFound("KeyboardLocale")

@@ -7,7 +7,7 @@
 ' //
 ' // File:      ZTIUtility.vbs
 ' // 
-' // Version:   6.2.5019.0
+' // Version:   6.3.8298.1000
 ' // 
 ' // Purpose:   Common Libraries for Microsoft Deployment Toolkit
 ' // 
@@ -37,7 +37,7 @@ Public Const adOpenStatic = 3
 Public Const adLockReadOnly = 1
 Public Const adLockOptimistic = 3
 
-Public Const Version = "6.2.5019.0"
+Public Const Version = "6.3.8298.1000"
 
 
 ' Global variables
@@ -171,13 +171,7 @@ class Logging
 				Exit Function  ' Verbose Messages are only displayed when Debug = True
 			Elseif iType = LogTypeDeprecated Then
 				iType = LogTypeInfo ' Deprecated messages are normally Info messages
-			End if
-
-			' Suppress messages containing password
-
-			If Instr(1, sLogMsg, "password", 1) > 0 then
-				sLogMsg = "<Message containing password has been suppressed>"
-			End if
+			End if			
 
 		Else  ' Debug = True
 
@@ -189,6 +183,11 @@ class Logging
 
 		End if
 
+		' Suppress messages containing password
+
+			If Instr(1, sLogMsg, "password", 1) > 0 then
+				sLogMsg = "<Message containing password has been suppressed>"
+			End if
 
 		' Populate the variables to log
 
@@ -1068,7 +1067,7 @@ Class Environment
 		Select Case Ucase(sVariable)
 		Case "USERID", "USERPASSWORD", "USERDOMAIN", "DOMAINADMIN", "DOMAINADMINPASSWORD", "DOMAINADMINDOMAIN", _
 		 "ADMINPASSWORD", "BDEPIN", "TPMOWNERPASSWORD", "ADDSUSERNAME", "ADDSPASSWORD", _
-		 "SAFEMODEADMINPASSWORD", "USERNAME", "USERPASSWORD", "PRODUCTKEY"
+		 "SAFEMODEADMINPASSWORD", "USERNAME", "USERPASSWORD", "PRODUCTKEY", "OSDJOINACCOUNT", "OSDJOINPASSWORD"
 			ObfuscateEncode = oStrings.Base64Encode(sNew)
 		Case Else
 			ObfuscateEncode = sNew
@@ -1082,7 +1081,7 @@ Class Environment
 		Select Case Ucase(sVariable)
 		Case "USERID", "USERPASSWORD", "USERDOMAIN", "DOMAINADMIN", "DOMAINADMINPASSWORD", "DOMAINADMINDOMAIN", _
 		 "ADMINPASSWORD", "BDEPIN", "TPMOWNERPASSWORD", "ADDSUSERNAME", "ADDSPASSWORD", _
-		 "SAFEMODEADMINPASSWORD", "USERNAME", "USERPASSWORD", "PRODUCTKEY"
+		 "SAFEMODEADMINPASSWORD", "USERNAME", "USERPASSWORD", "PRODUCTKEY", "OSDJOINACCOUNT", "OSDJOINPASSWORD"
 			ObfuscateDecode = oStrings.Base64Decode(sCurrent)
 
 
@@ -1405,6 +1404,10 @@ Class Utility
 	Private bCacheLocalRootPath
 	Private startTime
 	Private lastHeartbeat
+	Private iVersionMajor
+	Private iVersionMinor
+	Private iBuildNumber
+	Private iRevision
 
 	' ***  Constructor and destructor ***
 
@@ -1441,6 +1444,7 @@ Class Utility
 		isCScript = FALSE
 		isWScript = FALSE
 		set oMSHTA = nothing
+	
 		
 		on error resume next
 			isHTML = IsObject(window.location)
@@ -1593,6 +1597,56 @@ Class Utility
 
 	End Sub
 
+	' This function converts the string representation of a version "xx.xx.xx.xx" to int
+	' The function captures the version major/minor and build major/minor into Utility class variables. 
+	' It can be accessed via properties Utility.VersionMajor and Utility.VersionMinor
+	' e.g. 
+	'	1. GetMajorMinorVersion("10.0.12.1234") this will capture 
+	'		Utility.VersionMajor  = 10 and Utility.VersionMinor = 0 (BuildMajor and BuildMinor are not yet exposed as properties but the function still captures it)
+	'	2. GetMajorMinorVersion("10.110")
+	'		Utility.VersionMajor  = 10 and Utility.VersionMinor = 110 (no BuildMajor and BuildMinor)
+	' in case of invalid string representation of version (e.g. GetMajorMinorVersion("Thisisfun") function will set values to Int.Max (32767)	
+	Public Function GetMajorMinorVersion(sVersion) 
+		Dim length
+		Dim splitArray
+		splitArray = Split(sVersion,".")
+		length = UBound(splitArray)
+		If length >=0 then
+			Select case length
+			Case 1
+				iVersionMinor = CInt(splitArray(1)) 
+			
+			Case 2
+				iVersionMinor = CInt(splitArray(1)) 
+				iBuildNumber = CInt(splitArray(2)) 
+			Case 3
+				iVersionMinor = CInt(splitArray(1)) 
+				iBuildNumber = CInt(splitArray(2)) 
+				iRevision = CInt(splitArray(3)) 
+			Case Else	
+				iVersionMinor = 32767
+				iBuildNumber = 32767
+				iRevision = 32767	
+			End select
+			iVersionMajor = CInt(splitArray(0))				
+		Else
+			iVersionMajor = 32767  'Int.Max for VbScript is 32767
+			iVersionMinor = 32767
+			iBuildNumber = 32767
+			iRevision = 32767
+		End if
+	End Function
+
+        ' This function retrieves MSXML DOM document using MSXML2.DomDocument.6.0 
+        ' If it cannot load tries to get from MSXML2.DOMDocument.3.0 
+	Public Function GetMSXMLDOMDocument 
+                On Error Resume Next
+                Set GetMSXMLDOMDocument = CreateObject("MSXML2.DOMDocument.6.0")
+                If Err Then
+                        Set GetMSXMLDOMDocument = CreateObject("MSXML2.DOMDocument")
+                End If
+                On Error Goto 0
+        End Function
 
 	Private Function GetArguments
 	
@@ -1704,11 +1758,27 @@ Class Utility
 	Property Get CacheLocalRootPath
 		CacheLocalRootPath = bCacheLocalRootPath 
 	End Property
-
+	
 	Property Let CacheLocalRootPath(bNew)
 		bCacheLocalRootPath = bNew
 	End Property
 
+	Public Property Get VersionMajor
+		VersionMajor = iVersionMajor
+	End Property
+	
+	Public Property Get VersionMinor
+		VersionMinor = iVersionMinor
+	End Property
+	
+	Public Property Get BuildNumber
+		BuildNumber = iBuildNumber
+	End Property
+	
+	Public Property Get RevisionNumber
+		RevisionNumber = iRevision
+	End Property
+	
 	Property Get LocalRootPath
 
 		Dim sFallBack
@@ -2380,8 +2450,8 @@ Class Utility
 		ComputerName = oEnvironment.Substitute(sComputer)
 
 	End Function
-
-
+	
+	
 	Function FindFile(sFilename, sFoundPath)
 
 		Dim iRetVal
@@ -3043,7 +3113,7 @@ Class Utility
 		on error resume next
 		
 		Set CreateXMLDOMObjectEx = nothing
-		Set CreateXMLDOMObjectEx = CreateObject("MSXML2.DOMDocument")
+		Set CreateXMLDOMObjectEx = oUtility.GetMSXMLDOMDocument
 		TestAndFail not (CreateXMLDOMObjectEx is nothing), 5490, "Create MSXML2.DOMDocument."
 		
 		CreateXMLDOMObjectEx.Async = FALSE
@@ -3892,7 +3962,9 @@ Class Utility
 		select case (ucase(trim(sSKU)))
 			case "ULTIMATE", "ULTIMATEE", "ULTIMATEN"
 				IsHighEndSKUEx = TRUE
-			case "ENTERPRISE", "ENTERPRISEE", "ENTERPRISEN"
+			case "ENTERPRISE", "ENTERPRISEN", "ENTERPRISES", "ENTERPRISESN"
+				IsHighEndSKUEx = TRUE
+			case "EDUCATION", "EDUCATIONN"
 				IsHighEndSKUEx = TRUE
 			case "HYPERV"
 				IsHighEndSKUEx = TRUE

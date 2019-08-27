@@ -10,7 +10,7 @@
 ' //
 ' // File:      ZTILangPacksOnline.wsf
 ' // 
-' // Version:   6.2.5019.0
+' // Version:   6.3.8298.1000
 ' // 
 ' // Purpose:   Install Language Packs while in the full OS
 ' // 
@@ -67,11 +67,16 @@ Class ZTILangPacksOnline
 		Dim iRetVal
 		Dim sRootPath
 		Dim sFolderName
+		Dim iOSVerMajor, iOSVersionMinor
+		
+		oUtility.GetMajorMinorVersion(oEnvironment.Item("OSVersion"))
+		iOSVerMajor = oUtility.VersionMajor
+		iOSVersionMinor = oUtility.VersionMinor
 
 
 		' If not the required OS, log a non-fatal error and continue
 
-		If Left(oEnvironment.Item("OSVersion"),3) < "6.0" or oEnvironment.Item("OSVersion") = "WinPE" then
+		If iOSVerMajor < 6  or oEnvironment.Item("OSVersion") = "WinPE" then
 			oLogging.CreateEntry "Language Packs can only be installed from within Windows Vista, Windows Server 2008, or later OSes", LogTypeError
 			Main = Success
 			Exit Function

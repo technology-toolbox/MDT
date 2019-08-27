@@ -10,7 +10,7 @@
 ' //
 ' // File:      ZTIExecuteRunbook.wsf
 ' // 
-' // Version:   6.2.5019.0
+' // Version:   6.3.8298.1000
 ' // 
 ' // Purpose:   Execute a System Center Orchestrator 2012 runbook
 ' // 
@@ -249,7 +249,7 @@ Class ZTIExecuteRunbook
 
 
 		Set oHTTP = CreateObject("MSXML2.ServerXMLHTTP")
-		Set oReturn = CreateObject("MSXML2.DOMDocument")
+		Set oReturn = oUtility.GetMSXMLDOMDocument
 		Set Invoke = oReturn
 
 
