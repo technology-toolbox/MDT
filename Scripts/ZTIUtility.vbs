@@ -7,7 +7,7 @@
 ' //
 ' // File:      ZTIUtility.vbs
 ' // 
-' // Version:   6.3.8298.1000
+' // Version:   6.3.8330.1000
 ' // 
 ' // Purpose:   Common Libraries for Microsoft Deployment Toolkit
 ' // 
@@ -37,7 +37,7 @@ Public Const adOpenStatic = 3
 Public Const adLockReadOnly = 1
 Public Const adLockOptimistic = 3
 
-Public Const Version = "6.3.8298.1000"
+Public Const Version = "6.3.8330.1000"
 
 
 ' Global variables
@@ -2255,11 +2255,20 @@ Class Utility
 					oLogging.CreateEntry "  Console > " & sLine, LogTypeInfo
 
 					if oExec.Status = 0 then
-						' If the output contains a percentage, then intrepret it a status.
-						set oMatch = oRegEx.GetRegExMatches("([01]?[0-9]?[0-9]) ?\%",sLine)
+						' If the output contains a percentage, then interpret it a status.
+						
+						' Check for DISM-style progress
+						Set oMatch = oRegEx.GetRegExMatches("([01]?[0-9]?[0-9])\.[0-9]\%",sLine)
 						If oMatch.Count > 0 then
 							iLastProgress = cint(oMatch(oMatch.Count -1).SubMatches(0))
 							oLogging.ReportProgress sLine, iLastProgress
+						Else
+							' Check for "other" percentage
+							set oMatch = oRegEx.GetRegExMatches("([01]?[0-9]?[0-9]) ?\%",sLine)
+							If oMatch.Count > 0 then
+								iLastProgress = cint(oMatch(oMatch.Count -1).SubMatches(0))
+								oLogging.ReportProgress sLine, iLastProgress
+							End if
 						End if
 					End if
 				Next
@@ -3963,6 +3972,8 @@ Class Utility
 			case "ULTIMATE", "ULTIMATEE", "ULTIMATEN"
 				IsHighEndSKUEx = TRUE
 			case "ENTERPRISE", "ENTERPRISEN", "ENTERPRISES", "ENTERPRISESN"
+				IsHighEndSKUEx = TRUE
+			case "PROFESSIONAL", "PROFESSIONALN"
 				IsHighEndSKUEx = TRUE
 			case "EDUCATION", "EDUCATIONN"
 				IsHighEndSKUEx = TRUE
