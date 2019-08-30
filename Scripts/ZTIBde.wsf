@@ -11,7 +11,7 @@
 ' //
 ' // File:      ZTIBDE.wsf
 ' // 
-' // Version:   6.3.8443.1000
+' // Version:   6.3.8456.1000
 ' // 
 ' // Purpose:   Install and configure Bitlocker Drive Encryption
 ' // 
@@ -105,7 +105,7 @@ Class ZTIBDE
 		'//----------------------------------------------------------------------------
 
         
-       '// Save to OSCurrentVersion temporary varibale
+		'// Save to OSCurrentVersion temporary varibale
 		oUtility.GetMajorMinorVersion(oEnvironment.Item("OSCurrentVersion"))
 		iOSCVMajor = oUtility.VersionMajor
 		iOSCVMinor = oUtility.VersionMinor
@@ -135,14 +135,9 @@ Class ZTIBDE
 				oLogging.CreateEntry "BitLocker is suspended, pre-provisioning is not required.", LogTypeInfo
 			Elseif (iImageBuildMajor = 6 and iImageBuildMinor >= 1) or iImageBuildMajor >= 10  or (oUtility.VersionMajor = 6 and oUtility.VersionMinor >= 1) or oUtility.VersionMajor >= 10 then 
 				oLogging.CreateEntry "OS build supports Offline BitLocker.", LogTypeInfo
-				If TpmValidate = SUCCESS then
-					oLogging.CreateEntry "TPM is validated.", LogTypeInfo
-					oLogging.CreateEntry "Pre-provisioning BitLocker on drive " & oUtility.GetOSTargetDriveLetter, LogTypeInfo
-					oUtility.RunWithHeartbeat """" & oEnv("SystemRoot") & "\system32\Manage-bde.exe"" -on " & oUtility.GetOSTargetDriveLetter & " -used"
-					oEnvironment.Item("IsBDEPreProvisioned") = oUtility.ConvertBooleanToString(true)
-				Else
-					oLogging.CreateEntry "TPM not validated, offline BitLocker is not possible.", LogTypeInfo
-				End if
+				oLogging.CreateEntry "Pre-provisioning BitLocker on drive " & oUtility.GetOSTargetDriveLetter, LogTypeInfo
+				oUtility.RunWithHeartbeat """" & oEnv("SystemRoot") & "\system32\Manage-bde.exe"" -on " & oUtility.GetOSTargetDriveLetter & " -used"
+				oEnvironment.Item("IsBDEPreProvisioned") = oUtility.ConvertBooleanToString(true)
 			Else
 				oLogging.CreateEntry "Unable to perform Offline BitLocker tasks for this deployment.", LogTypeInfo
 			End if
@@ -274,7 +269,7 @@ Class ZTIBDE
 		'//  If this is Windows Server then make sure that BitLocker role is installed
 		'//----------------------------------------------------------------------------
 
-		If (Left(oEnvironment.item("OSCurrentVersion"),1)) >= 6 and (oEnvironment.Item("IsServerOS"))Then
+		If iOSCVMajor >= 6 and (oEnvironment.Item("IsServerOS")) Then
 
 			Dim sCmd, colServerFeature
 		
@@ -295,9 +290,8 @@ Class ZTIBDE
 
 
 				' Build the command to install the BitLocker feature
-				oUtility.GetMajorMinorVersion(oEnvironment.Item("OSCurrentVersion"))
 
-				If oUtility.VersionMajor = 6 and oUtility.VersionMinor = 0 then
+				If iOSCVMajor = 6 and iOSCVMinor = 0 then
 				
 					' Use ServerManagerCmd.exe or OCSetup.exe to install the feature
 
@@ -312,7 +306,7 @@ Class ZTIBDE
 					' any required dependencies (e.g. enhanced storage).
 	
 					sCmd = "dism.exe /online /enable-feature /featurename:BitLocker"
-					If ((oUtility.VersionMajor = 6 and oUtility.VersionMinor >= 2) or oUtility.VersionMajor >= 10 ) then
+					If ((iOSCVMajor = 6 and iOSCVMinor >= 2) or iOSCVMajor >= 10 ) then
 						sCmd = sCmd & " /all"
 					End if
 					sCmd = sCmd & " /NoRestart"
